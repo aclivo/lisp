@@ -1,0 +1,53 @@
+package rule
+
+import (
+	"testing"
+)
+
+func TestEvalListAndFunc(t *testing.T) {
+	a := astList{
+		astIdent("*"),
+		astNumber(2),
+		astList{
+			astIdent("+"),
+			astList{
+				astIdent("-"),
+				astNumber(9),
+				astNumber(3),
+			},
+			astNumber(1),
+			astList{
+				astIdent("db"),
+				astString("x"),
+				astString("a"),
+				astString("b"),
+			},
+		},
+	}
+
+	e := newEvaluator(newServer())
+	r := e.Eval(a)
+	if r != 212 {
+		t.Log(r)
+		t.Error("unexpected result")
+	}
+}
+
+func TestEvalAtoms(t *testing.T) {
+	{
+		a := astString("a")
+		e := newEvaluator(newServer())
+		r := e.evalAtomOrList(a)
+		if string(r.(astString)) != "a" {
+			t.Error("a expected")
+		}
+	}
+	{
+		a := astNumber(3)
+		e := newEvaluator(newServer())
+		r := e.evalAtomOrList(a)
+		if float64(r.(astNumber)) != 3 {
+			t.Error("3 expected")
+		}
+	}
+}

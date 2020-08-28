@@ -1,0 +1,31 @@
+package rule
+
+import (
+	"testing"
+)
+
+func TestAst(t *testing.T) {
+	if "'teste'" != astString("teste").String() {
+		t.Error("astString method error")
+	}
+
+	if "33" != astNumber(33).String() {
+		t.Error("astNumber method error")
+	}
+
+	if "+" != astIdent("+").String() {
+		t.Error("astIdent method error")
+	}
+
+	if "( + 33 )" != astList([]astNode{astIdent("+"), astNumber(33)}).String() {
+		t.Error("astList method error")
+	}
+
+	if "func" != astFunc(func(astList) astNode { return astIdent("+") }).String() {
+		t.Error("astFunc method error")
+	}
+
+	if "illegal" != astIllegal("illegal").String() {
+		t.Error("astIllegal method error")
+	}
+}

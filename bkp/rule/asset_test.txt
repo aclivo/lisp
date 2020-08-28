@@ -1,0 +1,19 @@
+package rule
+
+import (
+	"github.com/aclivo/olap"
+	"github.com/aclivo/olap/mem"
+	"github.com/aclivo/olap/std"
+)
+
+func newServer() olap.Server {
+	storage := mem.NewStorage()
+	server := std.NewServer(storage)
+	server.AddDimension(olap.Dimension{Name: "a"})
+	server.AddElement(olap.Element{Dimension: "a", Name: "a"})
+	server.AddDimension(olap.Dimension{Name: "b"})
+	server.AddElement(olap.Element{Dimension: "b", Name: "b"})
+	server.AddCube(olap.Cube{Name: "x", Dimensions: []string{"a", "b"}})
+	server.Put(olap.Cell{Cube: "x", Elements: []string{"a", "b"}, Value: 99})
+	return server
+}

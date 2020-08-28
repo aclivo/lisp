@@ -1,0 +1,82 @@
+package rule
+
+import (
+	"reflect"
+	"testing"
+)
+
+type testCase struct {
+	str    string
+	tokens []token
+}
+
+var cases []testCase = []testCase{
+	{
+		str:    "",
+		tokens: []token{},
+	},
+	{
+		str: "'",
+		tokens: []token{
+			{T: tquote, Start: 0, Text: "'"},
+		},
+	},
+	{
+		str: "a",
+		tokens: []token{
+			{T: tident, Start: 0, Text: "a"},
+		},
+	},
+	{
+		str: "(",
+		tokens: []token{
+			{T: tlparen, Start: 0, Text: "("},
+		},
+	},
+	{
+		str: ")",
+		tokens: []token{
+			{T: trparen, Start: 0, Text: ")"},
+		},
+	},
+	{
+		str: "3",
+		tokens: []token{
+			{T: tnumber, Start: 0, Text: "3"},
+		},
+	},
+	{
+		str: "333",
+		tokens: []token{
+			{T: tnumber, Start: 0, Text: "333"},
+		},
+	},
+	{
+		str:    " \t\n",
+		tokens: []token{},
+	},
+	{
+		str: "('a' 12.21)",
+		tokens: []token{
+			{T: tlparen, Start: 0, Text: "("},
+			{T: tquote, Start: 1, Text: "'"},
+			{T: tident, Start: 2, Text: "a"},
+			{T: tquote, Start: 3, Text: "'"},
+			{T: tnumber, Start: 5, Text: "12.21"},
+			{T: trparen, Start: 10, Text: ")"},
+		},
+	},
+}
+
+func TestTokenizer(t *testing.T) {
+	for _, c := range cases {
+		tokens := tokenize(c.str)
+		if !reflect.DeepEqual(c.tokens, tokens) {
+			t.Log(c.str)
+			t.Log(tokens)
+			t.Log(c.tokens)
+			t.Error("Not equal")
+			t.Log()
+		}
+	}
+}

@@ -1,0 +1,52 @@
+package rule
+
+import (
+	"fmt"
+	"strconv"
+	"strings"
+)
+
+type astNode interface {
+	String() string
+}
+
+type astString string
+
+func (s astString) String() string {
+	return fmt.Sprintf("'%s'", string(s))
+}
+
+type astNumber float64
+
+func (n astNumber) String() string {
+	return strconv.FormatFloat(float64(n), 'f', -1, 64)
+}
+
+type astIdent string
+
+func (i astIdent) String() string {
+	return string(i)
+}
+
+type astList []astNode
+
+func (l astList) String() string {
+	lst := []string{"("}
+	for _, i := range l {
+		lst = append(lst, i.String())
+	}
+	lst = append(lst, ")")
+	return strings.Join(lst, " ")
+}
+
+type astFunc func(astList) astNode
+
+func (f astFunc) String() string {
+	return "func"
+}
+
+type astIllegal string
+
+func (i astIllegal) String() string {
+	return "illegal"
+}

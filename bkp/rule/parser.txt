@@ -1,0 +1,133 @@
+package rule
+
+import (
+	"fmt"
+	"strconv"
+	"strings"
+)
+
+type unexpectedEnd struct {
+	Expected token
+}
+
+func (e *unexpectedEnd) Error() string {
+	return fmt.Sprintf("parser: unexpected end of the token stream. Token expected: %s", e.Expected.Text)
+}
+
+type unexpectedToken struct {
+	token
+}
+
+func (e *unexpectedToken) Error() string {
+	return fmt.Sprintf("parser: unexpected token '%s' found on position %d.", e.Text, e.Start)
+}
+
+func parse(tokens []token) (astNode, error) {
+	p := &parser{tokens: tokens}
+	return p.list()
+}
+
+type parser struct {
+	current int
+	tokens  []token
+}
+
+func (p *parser) list() (astNode, error) {
+	lst := []astNode{}
+
+	if !p.check(tlparen) {
+		return nil, &unexpectedToken{token: p.peek()}
+	}
+	p.advance()
+
+	for {
+		if p.isAtEnd() {
+			return astList{}, &unexpectedEnd{Expected: token{T: trparen, Text: ")"}}
+		}
+		if !p.check(trparen) {
+			x, err := p.atom()
+			if err != nil {
+				return astList{}, err
+			}
+			lst = append(lst, x)
+			continue
+		}
+		if p.check(trparen) {
+			break
+		}
+	}
+	p.advance()
+
+	return astList(lst), nil
+}
+
+func (p *parser) atom() (astNode, error) {
+	if p.check(tnumber) {
+		f, _ := strconv.ParseFloat(p.peek().Text, 64)
+		p.advance()
+		return astNumber(f), nil
+	}
+	if p.check(tident) {
+		i, err := p.ident()
+		return i, err
+	}
+	if p.check(tlparen) {
+		return p.list()
+	}
+	return p.str()
+}
+
+func (p *parser) ident() (astIdent, error) {
+	str := []string{}
+	for p.peek().T == tident {
+		x := p.advance()
+		str = append(str, x.Text)
+	}
+	i := astIdent(strings.Join(str, ""))
+	return i, nil
+}
+
+func (p *parser) str() (astString, error) {
+	str := ""
+	p.advance()
+	for {
+		if p.isAtEnd() {
+			return astString(""), &unexpectedEnd{Expected: token{T: tident, Text: "."}}
+		}
+		if p.check(tident) {
+			str += p.peek().Text
+			p.advance()
+			continue
+		}
+		if p.check(tquote) {
+			break
+		}
+	}
+	p.advance()
+	s := astString(str)
+	return s, nil
+}
+
+func (p *parser) check(t tokenType) bool {
+	return p.peek().T == t
+}
+
+func (p *parser) advance() token {
+	p.current++
+	return p.previous()
+}
+
+func (p *parser) isAtEnd() bool {
+	if p.current >= len(p.tokens) {
+		return true
+	}
+	return false
+}
+
+func (p *parser) peek() token {
+	return p.tokens[p.current]
+}
+
+func (p *parser) previous() token {
+	return p.tokens[p.current-1]
+}

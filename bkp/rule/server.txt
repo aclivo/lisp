@@ -1,0 +1,38 @@
+package rule
+
+import (
+	"context"
+
+	"github.com/aclivo/olap"
+)
+
+type server struct {
+	olap.Server
+	rules map[string][]olap.Rule
+}
+
+// NewServer .
+func NewServer(s olap.Server) olap.Server {
+	return &server{
+		Server: s,
+		rules:  map[string][]olap.Rule{},
+	}
+}
+
+func (s *server) GetCellByName(ctx context.Context, cube string, elements ...string) (olap.Cell, error) {
+	c := olap.Cell{Cube: cube, Elements: elements}
+
+	for _, r := range s.rules[cube] {
+		if ok := r.Match(ctx, elements...); ok {
+			c.Value = r.Eval(ctx, elements...)
+			return c, nil
+		}
+	}
+	return s.Server.GetCellByName(ctx, cube, elements...)
+}
+
+// AddRule .
+func (s *server) AddRule(ctx context.Context, r olap.Rule) error {
+	s.rules[r.Cube] = append(s.rules[r.Cube], r)
+	return nil
+}

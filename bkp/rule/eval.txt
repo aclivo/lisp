@@ -1,0 +1,78 @@
+package rule
+
+import (
+	"github.com/aclivo/olap"
+)
+
+type evaluator struct {
+	server olap.Server
+	env    map[string]astFunc
+}
+
+// NewEvaluator .
+func newEvaluator(server olap.Server) *evaluator {
+	e := &evaluator{
+		server: server,
+		env: map[string]astFunc{
+			"+": astFunc(func(l astList) astNode {
+				sum := float64(l[0].(astNumber))
+				l = l[1:]
+				for _, a := range l {
+					sum += float64(a.(astNumber))
+				}
+				return astNumber(sum)
+			}),
+			"*": astFunc(func(l astList) astNode {
+				sum := float64(l[0].(astNumber))
+				l = l[1:]
+				for _, a := range l {
+					sum *= float64(a.(astNumber))
+				}
+				return astNumber(sum)
+			}),
+			"-": astFunc(func(l astList) astNode {
+				sum := float64(l[0].(astNumber))
+				l = l[1:]
+				for _, a := range l {
+					sum -= float64(a.(astNumber))
+				}
+				return astNumber(sum)
+			}),
+		}}
+	return e
+}
+
+func (e *evaluator) Eval(a astNode) float64 {
+	r := e.eval(a)
+	return float64(r.(astNumber))
+}
+
+func (e *evaluator) eval(a astNode) astNode {
+	return e.evalList(a.(astList))
+
+}
+
+func (e *evaluator) evalList(list astList) astNode {
+	args := []astNode{}
+
+	head := list[0].(astIdent)
+	list = list[1:]
+
+	for _, a := range list {
+		exp := e.evalAtomOrList(a)
+		args = append(args, exp)
+	}
+
+	f := e.env[string(head)]
+	return f(args)
+}
+
+func (e *evaluator) evalAtomOrList(a astNode) astNode {
+	switch x := a.(type) {
+	case astString:
+		return x
+	case astNumber:
+		return x
+	}
+	return e.evalList(a.(astList))
+}

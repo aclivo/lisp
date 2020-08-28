@@ -1,0 +1,110 @@
+package rule
+
+import (
+	"unicode"
+)
+
+type tokenType int
+
+const (
+	tident tokenType = iota
+	tquote
+	tlparen
+	trparen
+	tnumber
+)
+
+type token struct {
+	T     tokenType
+	Text  string
+	Start int
+}
+
+type tokenizer struct {
+	runes   []rune
+	tokens  []token
+	start   int
+	current int
+}
+
+func tokenize(str string) []token {
+	tkzr := tokenizer{
+		runes:  []rune(str),
+		tokens: []token{},
+	}
+	return tkzr.scanTokens()
+}
+
+func (t *tokenizer) scanTokens() []token {
+	for {
+		t.start = t.current
+
+		if t.isAtEnd() {
+			break
+		}
+
+		r := t.advance()
+
+		if unicode.IsSpace(r) {
+			continue
+		}
+
+		if unicode.IsNumber(r) || r == '.' {
+			t.digits(r)
+			continue
+		}
+		if r == '\'' {
+			t.addToken(tquote, r)
+			continue
+		}
+		if r == '(' {
+			t.addToken(tlparen, r)
+			continue
+		}
+		if r == ')' {
+			t.addToken(trparen, r)
+			continue
+		}
+		t.addToken(tident, r)
+	}
+	return t.tokens
+}
+
+func (t *tokenizer) digits(r rune) {
+	if t.isAtEnd() {
+		t.addToken(tnumber, r)
+		return
+	}
+	str := string(r)
+	for {
+		if t.isAtEnd() {
+			break
+		}
+		if !unicode.IsDigit(t.peek()) && t.peek() != '.' {
+			break
+		}
+		str += string(t.peek())
+		t.advance()
+	}
+	t.tokens = append(t.tokens, token{T: tnumber, Text: str, Start: t.start})
+}
+
+func (t *tokenizer) addToken(ty tokenType, r rune) {
+	t.tokens = append(t.tokens, token{T: ty, Text: string(r), Start: t.start})
+}
+
+func (t *tokenizer) isAtEnd() bool {
+	if t.current >= len(t.runes) {
+		return true
+	}
+	return false
+}
+
+func (t *tokenizer) peek() rune {
+	return t.runes[t.current]
+}
+
+func (t *tokenizer) advance() rune {
+	t.current++
+	return t.runes[t.current-1]
+}

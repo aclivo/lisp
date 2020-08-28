@@ -1,0 +1,105 @@
+package rule
+
+import (
+	"testing"
+)
+
+func TestParserListErrors(t *testing.T) {
+	tokens := tokenize("1")
+	_, err := parse(tokens)
+	if _, ok := err.(*unexpectedToken); !ok {
+		t.Error("UnexpectedToken error expected")
+	}
+	if err.Error() != "parser: unexpected token '1' found on position 0." {
+		t.Error("error in the message")
+	}
+
+	tokens = tokenize("(")
+	_, err = parse(tokens)
+	if _, ok := err.(*unexpectedEnd); !ok {
+		t.Error("UnexpectedEnd error expected")
+	}
+	if err.Error() != "parser: unexpected end of the token stream. Token expected: )" {
+		t.Error("error in the message")
+	}
+}
+
+func TestParserNumberAtom(t *testing.T) {
+	tokens := tokenize("(1)")
+	node, err := parse(tokens)
+	if err != nil {
+		t.Error(err)
+	}
+	if node.String() != "( 1 )" {
+		t.Error("parser error")
+	}
+
+	tokens = tokenize("(123.21)")
+	node, err = parse(tokens)
+	if err != nil {
+		t.Error(err)
+	}
+	if node.String() != "( 123.21 )" {
+		t.Error("parser error")
+	}
+
+	tokens = tokenize("(782 121)")
+	node, err = parse(tokens)
+	if err != nil {
+		t.Error(err)
+	}
+	if node.String() != "( 782 121 )" {
+		t.Error("parser error")
+	}
+
+	tokens = tokenize("(.21)")
+	node, err = parse(tokens)
+	if err != nil {
+		t.Error(err)
+	}
+	if node.String() != "( 0.21 )" {
+		t.Log(node)
+		t.Error("parser error")
+	}
+}
+
+func TestParserIdentAtom(t *testing.T) {
+	tokens := tokenize("(a)")
+	node, err := parse(tokens)
+	if err != nil {
+		t.Error(err)
+	}
+	if node.String() != "( a )" {
+		t.Error("parser error")
+	}
+}
+
+func TestParserStringAtomError(t *testing.T) {
+	tokens := tokenize("('")
+	_, err := parse(tokens)
+	if _, ok := err.(*unexpectedEnd); !ok {
+		t.Error("UnexpectedEnd error expected")
+	}
+}
+
+func TestParserStringAtom(t *testing.T) {
+	tokens := tokenize("('maria')")
+	node, err := parse(tokens)
+	if err != nil {
+		t.Error(err)
+	}
+	if node.String() != "( 'maria' )" {
+		t.Error("parser error")
+	}
+}
+
+func TestNestedList(t *testing.T) {
+	tokens := tokenize("(f 'maria' (+ 1 1.3 33 0.7 8))")
+	node, err := parse(tokens)
+	if err != nil {
+		t.Error(err)
+	}
+	if node.String() != "( f 'maria' ( + 1 1.3 33 0.7 8 ) )" {
+		t.Error("parser error")
+	}
+}
